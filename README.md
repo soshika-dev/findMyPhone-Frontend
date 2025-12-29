@@ -1,38 +1,67 @@
-# findmyphone-frontend
+# پیدا کردن دستگاه (فرانت‌اند)
 
-This template should help get you started developing with Vue 3 in Vite.
+اپ تک‌صفحه‌ای الهام‌گرفته از تجربه کاربری «Find My» برای مشاهده و مدیریت موقعیت گوشی‌های هوشمند. پروژه با **Vue 3 + Vite** ساخته شده و از **TailwindCSS** و **DaisyUI** برای طراحی مینیمال راست‌به‌چپ استفاده می‌کند. داده‌ها در حال حاضر ساختگی و بدون بک‌اند هستند اما لایه سرویس برای اتصال آینده آماده است.
 
-## Recommended IDE Setup
+## اجرای سریع
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+اسکریپت‌های مهم:
 
-```sh
-npm run build
+- `npm run dev` اجرای محیط توسعه
+- `npm run build` ساخت خروجی تولید
+- `npm run preview` پیش‌نمایش خروجی تولید
+- `npm run typecheck` اطمینان از صحت تایپ‌ها با `vue-tsc`
+
+## معماری و پوشه‌ها
+
 ```
+src/
+  components/     # کامپوننت‌های UI (نوار بالا، لیست و کارت دستگاه، نقشه، شیت موبایل، دکمه‌های اقدام)
+  composables/    # هوک‌های وضعیت (useDevices برای مدیریت داده و به‌روزرسانی‌ها، useTheme برای تم)
+  services/       # لایه API ساختگی و سرویس دستگاه‌ها
+  types/          # تایپ‌های TypeScript برای مدل‌ها
+  utils/          # توابع فرمت تاریخ و اعداد فارسی
+```
+
+## نحوه شبیه‌سازی «به‌روزرسانی لحظه‌ای»
+
+- فایل `src/services/devices.service.ts` شامل ۷ دستگاه پیش‌فرض با مختصات و وضعیت‌های مختلف است.
+- پس از بارگذاری، هر ۳ ثانیه روی دستگاه‌های آنلاین رانش مختصر مختصات و کاهش جزئی باتری اعمال می‌شود و `lastUpdate` به‌روز می‌گردد.
+- اگر باتری به صفر برسد دستگاه آفلاین می‌شود. دستگاه‌های آفلاین یا پاک‌شده دیگر حرکت نمی‌کنند.
+- مشترک شدن در به‌روزرسانی‌ها از طریق `subscribeToDeviceUpdates` انجام می‌شود که در `useDevices` استفاده شده است.
+
+## جایگزینی سرویس ساختگی با بک‌اند واقعی
+
+لایه سرویس به‌صورت ماژولار نوشته شده تا به‌سادگی با درخواست‌های واقعی جایگزین شود:
+
+- `src/services/api.ts` نقطه ورودی رپر درخواست است. به‌جای `request` می‌توانید از `fetch`/`axios` با آدرس‌های واقعی استفاده کنید.
+- `src/services/devices.service.ts` متدهای زیر را فراهم می‌کند که می‌توانند به API واقعی متصل شوند:
+  - `fetchDevices()` → دریافت لیست دستگاه‌ها (پیشنهادی: `GET /devices`)
+  - `subscribeToDeviceUpdates()` → در حالت واقعی می‌تواند به WebSocket یا SSE برای دریافت مکان و باتری متصل شود.
+  - `performDeviceAction(id, 'playSound')` → ارسال دستور پخش صدا (پیشنهادی: `POST /devices/:id/actions/play-sound`)
+  - `toggleLostMode(id, state)` → تغییر حالت گم‌شده (پیشنهادی: `PATCH /devices/:id` یا `POST /devices/:id/actions/lost-mode`)
+  - `wipeDevice(id)` → پاک کردن دستگاه (پیشنهادی: `POST /devices/:id/actions/wipe`)
+
+برای اتصال واقعی کافی است داخل این توابع، درخواست HTTP/وب‌سوکت مناسب را جایگزین منطق ساختگی و برداشتن `delay` کنید.
+
+## ویژگی‌ها
+
+- رابط تماماً فارسی و راست‌به‌چپ با فونت [Vazirmatn](https://github.com/rastikerdar/vazirmatn)
+- نقشه مبتنی بر Leaflet با کاشی‌های OpenStreetMap (بدون نیاز به کلید)
+- لیست دستگاه با فیلتر «آنلاین» و «در دسترس» + جستجو بر اساس نام
+- نشانگرهای نقشه با تولتیپ فارسی شامل نام، باتری و وضعیت اتصال
+- دکمه‌های اقدام ساختگی: پخش صدا، حالت گم‌شده (با نشان)، پاک کردن دستگاه (مودال تأیید)
+- تم روشن/تاریک با DaisyUI و ذخیره در LocalStorage
+- طراحی واکنش‌گرا: سایدبار دسکتاپ + شیت کشویی موبایل
+
+## نکات توسعه
+
+- جهت صفحه در `index.html` روی `dir="rtl"` تنظیم شده و تم از طریق `data-theme` کنترل می‌شود.
+- استایل‌های پایه Tailwind در `src/assets/main.css` قرار دارد و شامل استایل کمکی toast است.
+- برای تغییر فونت یا افزودن تم جدید، تنظیمات در `tailwind.config.js` و DaisyUI قابل ویرایش است.
+
+شاد کدنویسی کنید! ✨
